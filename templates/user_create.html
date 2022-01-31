@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title%}Sign up {% endblock %}
+{% block content %}
+<h2 class="text-3xl font-bold p-4 ">Sign Up </h2>
+<form action="" method="post">
+    {% csrf_token %}
+    {% for field in form %}
+        <div class="fieldWrapper m-4">
+            <div class="text-l font-semibold mb-2">{{ field.label_tag }}</div> 
+            <div class="bg-white">{{ field }}</div>
+            {% if field.help_text %}
+            <p class="help text-sm">*{{ field.help_text|safe }}</p>
+            {% endif %}
+            {% if field.errors %}
+            <p class="help text-sm text-red-400">*{{ field.errors|safe }}</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+    <div class="text-center">
+        <Button class="bg-red-600 w-full text-white p-2 rounded-md" type="submit">Sign Up</Button>
+    </div>
+    
+</form>
+
+{% endblock content %}

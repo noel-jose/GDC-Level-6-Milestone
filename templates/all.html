@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %} Todo application {% endblock title%}
+
+{% block content %}
+
+
+<h1 class="text-3xl font-semibold p-4"></h1>
+
+
+<h2 class="text-2xl font-semibold p-3">All Tasks</h2>
+
+<div class="flex justify-between items-center my-8">
+    <a class = "text-red-400 bg-red-100 px-2 py-1 rounded-lg m-2 font-semibold"  href="/all_tasks/">All</a>
+    <div>
+        <a class = "text-gray-700  px-2 py-1  font-semibold" href="/tasks/">Pending</a>
+        <a class = "text-gray-700  px-2 py-1  font-semibold" href="/completed_tasks/">Completed</a> 
+    </div>      
+</div>
+
+<a class="bg-red-600  text-white p-2 px-5 rounded-md my-4" href="/create-task">Add Task</a>
+
+<div class="flex flex-col">
+    <h1 class="text-xl font-bold pt-6">Pending Tasks</h1>
+    {% for task in alltasks.pending %}    
+        <div class = "flex  bg-teal-100 justify-between items-center rounded-md p-3 m-3">
+            <a href="/detail-task/{{task.id}}">
+                <span class="font-medium text-xl mr-3">{{task}}</span>
+            </a>
+            <div class="flex items-center justify ml-5">
+                <a href="/delete-task/{{task.id}}"><div class="bg-red-700 p-2 m-2 rounded-md"><img style="height: 12px;" src="{%static 'tasks/trash.png' %}" alt="Trash icon"></div></a>   
+                <a href="/complete_task/{{task.id}}"><div class="bg-white p-2 m-2 rounded-md"><img style="height: 12px;" src="{%static 'tasks/check.png' %}" alt="Check icon"></div></a>   
+                <a href="/update-task/{{task.id}}"><div class="bg-teal-700 p-2 m-2 rounded-md"><img  style="height: 12px;" src="{%static 'tasks/edit.png' %}" alt="Update task"></div></a>                
+            </div>
+        </div>
+    {% empty %}
+        <p class="text-l ">No pending tasks</p>
+    {% endfor %}
+
+    <h1 class="text-xl font-bold pt-6">Completed Tasks</h1>
+    {% for task in alltasks.completed %}    
+        <div class = "flex  bg-teal-100 justify-between items-center rounded-md p-3 m-3">
+            <a href="/detail-task/{{task.id}}">
+                <span class="font-medium text-xl mr-3">{{task}}</span>
+            </a>
+            <div class="flex items-center justify ml-5">
+                <a href="/delete-task/{{task.id}}"><div class="bg-red-700 p-2 m-2 rounded-md"><img style="height: 12px;" src="{%static 'tasks/trash.png' %}" alt="Trash icon"></div></a>   
+                <a href="/complete_task/{{task.id}}"><div class="bg-white p-2 m-2 rounded-md"><img style="height: 12px;" src="{%static 'tasks/check.png' %}" alt="Check icon"></div></a>   
+                <a href="/update-task/{{task.id}}"><div class="bg-teal-700 p-2 m-2 rounded-md"><img  style="height: 12px;" src="{%static 'tasks/edit.png' %}" alt="Update task"></div></a>                
+            </div>
+        </div>
+    {% empty %}
+        <p class="text-l ">No tasks are completed</p>        
+    {% endfor %}
+</div>
+
+
+{% endblock content %}

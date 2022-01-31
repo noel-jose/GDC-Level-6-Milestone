@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Mark task as complete{% endblock title%}
+
+{% block content %}
+
+<div class="h-screen w-screen flex items-center justify-center">
+<form method="post" class = "bg-white shadow overflow-hidden sm:rounded-lg p-5">
+    {% csrf_token %}
+
+    {% if object.completed == False %}
+    <p class="p-2">Are you sure you want to mark "{{ object }}" as complete ?</p>
+    {% else %}
+    <p class="p-2">Are you sure you want to set "{{ object }}" as pending task ?</p>
+    {% endif %}
+
+    <input class = "bg-green-600 w-full text-white p-2 rounded-md" type="submit" value="Confirm">
+</form>
+</div>
+
+
+{% endblock %}

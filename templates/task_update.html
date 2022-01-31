@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Create Task {% endblock title %}
+
+{% block  content %}
+<form action="/create-task/" method="POST">
+    {% csrf_token %}
+    {% for field in form %}
+        <div class="fieldWrapper m-4 bg-gray-50 p-7">
+            <div class="text-l font-semibold mb-2">{{ field.label_tag }}</div> 
+            <div class="bg-white-100">{{ field }}</div>
+            {% if field.help_text %}
+            <p class="help text-sm">*{{ field.help_text|safe }}</p>
+            {% endif %}
+            {% if field.errors %}
+            <div class="help text-sm text-red-400">{{ field.errors|safe }}</div>
+            {% endif %}
+        </div>
+    {% endfor %}
+    <div class="text-center">
+        <Button class="bg-red-600 w-full text-white p-2 rounded-md" type="submit">Update</Button>
+    </div>
+</form>
+{% endblock content %}
