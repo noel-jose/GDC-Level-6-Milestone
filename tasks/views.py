@@ -1,6 +1,6 @@
 # Add your Views Here
 
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import ValidationError
@@ -65,12 +65,38 @@ class PrioirtyValidation(AuthorisedTaskManager):
         return HttpResponseRedirect(self.get_success_url())
 
 
+class CustomUserCreationForm(UserCreationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 39}
+        )
+        self.fields["password1"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 40}
+        )
+        self.fields["password2"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 40}
+        )
+
+
+class CustomUserAuthenticationForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 39}
+        )
+        self.fields["password"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 40}
+        )
+
+
 class UserLoginView(LoginView):
+    form_class = CustomUserAuthenticationForm
     template_name = "user_login.html"
 
 
 class UserCreateView(CreateView):
-    form_class = UserCreationForm
+    form_class = CustomUserCreationForm
     template_name = "user_create.html"
     success_url = "/user/login"
 
@@ -110,16 +136,32 @@ class TaskCreateForm(ModelForm):
         title = self.cleaned_data["title"]
         if len(title) < 5:
             raise ValidationError("Title too small")
-        return title.upper()
+        return title
 
-    # def clean_priority(self):
-    #     priority = self.cleaned_data["priority"]
-    #     if priority <= 0:
-    #         raise ValidationError("Priority should be greater than 0")
+    def clean_priority(self):
+        priority = self.cleaned_data.get("priority")
+        if priority <= 0:
+            raise ValidationError("Priority should be greater than 0")
+        return priority
 
     class Meta:
         model = Task
-        fields = ["title", "description", "completed", "priority"]
+        fields = ["title", "description", "priority", "completed"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["title"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 39}
+        )
+        self.fields["description"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 40}
+        )
+        self.fields["priority"].widget.attrs.update(
+            {
+                "class": "p-2 bg-slate-100 rounded-md outline-0",
+                "size": 40,
+            }
+        )
 
 
 class GenericTaskUpdateView(PrioirtyValidation, UpdateView):
@@ -184,5 +226,14 @@ class GenericAllTaskView(LoginRequiredMixin, ListView):
         completed = Task.objects.filter(
             user=self.request.user, completed=True, deleted=False
         )
-        alltasks = {"pending": pending, "completed": completed}
+        name = self.request.user
+        completed_count = completed.count()
+        total_count = Task.objects.filter(user=self.request.user, deleted=False).count()
+        alltasks = {
+            "pending": pending,
+            "completed": completed,
+            "name": name,
+            "completed_count": completed_count,
+            "total_count": total_count,
+        }
         return alltasks
