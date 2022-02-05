@@ -4,13 +4,13 @@
 {% block content %}
 
 <div class="h-screen w-screen flex flex-col justify-center items-center">
-    <h2 class="text-3xl font-bold p-4 ">Sign Up </h2>
-    <form action="" method="post" class="bg-slate-100 p-4 rounded-lg">
+    <h2 class="text-3xl font-bold p-4 ">Login </h2>
+    <form action="" method="post">
         {% csrf_token %}
         {% for field in form %}
             <div class="fieldWrapper m-4">
                 <div class="text-l font-semibold mb-2">{{ field.label_tag }}</div> 
-                <div class="bg-white">{{ field }}</div>
+                <div>{{ field }}</div>
                 {% if field.help_text %}
                 <p class="help text-sm">*{{ field.help_text|safe }}</p>
                 {% endif %}
@@ -20,7 +20,7 @@
             </div>
         {% endfor %}
         <div class="text-center">
-            <Button class="bg-red-600 w-full text-white p-2 rounded-md" type="submit">Login</Button>
+            <Button class="bg-red-600 w-full text-white p-2 rounded-md " type="submit">Login</Button>
         </div>
         
     </form>

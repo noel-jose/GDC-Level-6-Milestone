@@ -3,10 +3,11 @@
 {% block title %}Create Task {% endblock title %}
 
 {% block  content %}
+<h1 class="text-xl font-bold pt-6">Update Todo</h1>
 <form action="/create-task/" method="POST">
     {% csrf_token %}
-    {% for field in form %}
-        <div class="fieldWrapper m-4 bg-gray-50 p-7">
+    {% for field in form %}                   
+        <div class="fieldWrapper  p-3">
             <div class="text-l font-semibold mb-2">{{ field.label_tag }}</div> 
             <div class="bg-white-100">{{ field }}</div>
             {% if field.help_text %}

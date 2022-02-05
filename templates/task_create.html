@@ -3,12 +3,13 @@
 {% block title %}Create Task {% endblock title %}
 
 {% block  content %}
+<h1 class="text-xl font-bold pt-6">Create Todo</h1>
 <form action="/create-task/" method="POST">
     {% csrf_token %}
     {% for field in form %}
         <div class="fieldWrapper m-4">
             <div class="text-l font-semibold mb-2">{{ field.label_tag }}</div> 
-            <div class="bg-white">{{ field }}</div>
+            <div>{{ field }}</div>
             {% if field.help_text %}
             <p class="help text-sm">*{{ field.help_text|safe }}</p>
             {% endif %}

@@ -1,6 +1,6 @@
 # Add your Views Here
 
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import ValidationError
@@ -12,6 +12,8 @@ from django.views.generic import ListView
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
+from django.db import transaction
+
 from tasks.models import Task
 
 
@@ -20,12 +22,81 @@ class AuthorisedTaskManager(LoginRequiredMixin):
         return Task.objects.filter(deleted=False, user=self.request.user)
 
 
+class PrioirtyValidation(AuthorisedTaskManager):
+    def validate_priority(self, object):
+        # getting priority of the task to be created
+        current_priority = object.priority
+        # checking if a task with the priority exists in the db
+        if Task.objects.filter(
+            user=self.request.user,
+            deleted=False,
+            completed=False,
+            priority=current_priority,
+        ).exists():
+
+            # getting all the tasks from db that are not deleted,not completed and of this user
+            tasks = (
+                Task.objects.select_for_update()
+                .filter(user=self.request.user, deleted=False, completed=False)
+                .order_by("priority")
+            )
+            # a dictinary to hold id and the new priority of the task
+            tasks_to_be_updated = {}
+
+            # adding the tasks whose values are to be modified to the dictionary with their new priority
+            for task in tasks:
+                if task.priority == current_priority:
+                    tasks_to_be_updated[task.id] = current_priority + 1
+                    current_priority = current_priority + 1
+
+            # updating the priority of the tasks in an atomic manner
+            with transaction.atomic():
+                for key in tasks_to_be_updated:
+                    Task.objects.filter(id=key).update(
+                        priority=tasks_to_be_updated[key]
+                    )
+
+    def form_valid(self, form):
+        """If the form is valid, save the associated model."""
+        self.object = form.save()
+        self.object.user = self.request.user
+        self.validate_priority(self.object)
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class CustomUserCreationForm(UserCreationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 39}
+        )
+        self.fields["password1"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 40}
+        )
+        self.fields["password2"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 40}
+        )
+
+
+class CustomUserAuthenticationForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 39}
+        )
+        self.fields["password"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 40}
+        )
+
+
 class UserLoginView(LoginView):
+    form_class = CustomUserAuthenticationForm
     template_name = "user_login.html"
 
 
 class UserCreateView(CreateView):
-    form_class = UserCreationForm
+    form_class = CustomUserCreationForm
     template_name = "user_create.html"
     success_url = "/user/login"
 
@@ -65,56 +136,45 @@ class TaskCreateForm(ModelForm):
         title = self.cleaned_data["title"]
         if len(title) < 5:
             raise ValidationError("Title too small")
-        return title.upper()
+        return title
 
-    # def clean_priority(self):
-    #     priority = self.cleaned_data["priority"]
-    #     if priority <= 0:
-    #         raise ValidationError("Priority should be greater than 0")
+    def clean_priority(self):
+        priority = self.cleaned_data.get("priority")
+        if priority <= 0:
+            raise ValidationError("Priority should be greater than 0")
+        return priority
 
     class Meta:
         model = Task
-        fields = ["title", "description", "completed", "priority"]
+        fields = ["title", "description", "priority", "completed"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["title"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 39}
+        )
+        self.fields["description"].widget.attrs.update(
+            {"class": "p-2 bg-slate-100 rounded-md outline-0", "size": 40}
+        )
+        self.fields["priority"].widget.attrs.update(
+            {
+                "class": "p-2 bg-slate-100 rounded-md outline-0",
+                "size": 40,
+            }
+        )
 
 
-class GenericTaskUpdateView(AuthorisedTaskManager, UpdateView):
+class GenericTaskUpdateView(PrioirtyValidation, UpdateView):
     model = Task
     form_class = TaskCreateForm
     template_name = "task_update.html"
     success_url = "/tasks"
 
 
-class GenericTaskCreateView(LoginRequiredMixin, CreateView):
+class GenericTaskCreateView(PrioirtyValidation, CreateView):
     form_class = TaskCreateForm
     template_name = "task_create.html"
     success_url = "/tasks"
-
-    def validate_priority(self, object):
-        # to check if the current submitted task will meet the constraint of priority
-        current_priority = object.priority  # fetched the priority of the current task
-        tasks = Task.objects.filter(
-            user=self.request.user, completed=False, deleted=False
-        )  # fetched the tasks from the query set
-        if tasks.filter(priority=current_priority).exists():
-            task = tasks.get(priority=current_priority)
-            while tasks.filter(priority=current_priority).exists():
-                current_priority += 1
-                if tasks.filter(priority=current_priority).exists():
-                    temp = tasks.get(priority=current_priority)
-                    task.priority = task.priority + 1
-                    task.save()
-                    task = temp
-                else:
-                    task.priority = task.priority + 1
-                    task.save()
-
-    def form_valid(self, form):
-        """If the form is valid, save the associated model."""
-        self.object = form.save()
-        self.object.user = self.request.user
-        self.validate_priority(self.object)
-        self.object.save()
-        return HttpResponseRedirect(self.get_success_url())
 
 
 class GenericTaskView(LoginRequiredMixin, ListView):
@@ -166,5 +226,14 @@ class GenericAllTaskView(LoginRequiredMixin, ListView):
         completed = Task.objects.filter(
             user=self.request.user, completed=True, deleted=False
         )
-        alltasks = {"pending": pending, "completed": completed}
+        name = self.request.user
+        completed_count = completed.count()
+        total_count = Task.objects.filter(user=self.request.user, deleted=False).count()
+        alltasks = {
+            "pending": pending,
+            "completed": completed,
+            "name": name,
+            "completed_count": completed_count,
+            "total_count": total_count,
+        }
         return alltasks

@@ -8,9 +8,9 @@
     {% for field in form %}
         <div class="fieldWrapper m-4">
             <div class="text-l font-semibold mb-2">{{ field.label_tag }}</div> 
-            <div class="bg-white">{{ field }}</div>
+            <div>{{ field }}</div>
             {% if field.help_text %}
-            <p class="help text-sm">*{{ field.help_text|safe }}</p>
+            <div class="help text-sm text-gray-600 pt-2">{{ field.help_text|safe }}</div>
             {% endif %}
             {% if field.errors %}
             <p class="help text-sm text-red-400">*{{ field.errors|safe }}</p>
@@ -18,7 +18,7 @@
         </div>
     {% endfor %}
     <div class="text-center">
-        <Button class="bg-red-600 w-full text-white p-2 rounded-md" type="submit">Sign Up</Button>
+        <Button class="bg-red-600 w-full text-white p-2 rounded-md " type="submit">Sign Up</Button>
     </div>
     
 </form>
