@@ -12,6 +12,8 @@ from django.views.generic import ListView
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
+from django.db import transaction
+
 from tasks.models import Task
 
 
@@ -90,23 +92,37 @@ class GenericTaskCreateView(LoginRequiredMixin, CreateView):
     success_url = "/tasks"
 
     def validate_priority(self, object):
-        # to check if the current submitted task will meet the constraint of priority
-        current_priority = object.priority  # fetched the priority of the current task
-        tasks = Task.objects.filter(
-            user=self.request.user, completed=False, deleted=False
-        )  # fetched the tasks from the query set
-        if tasks.filter(priority=current_priority).exists():
-            task = tasks.get(priority=current_priority)
-            while tasks.filter(priority=current_priority).exists():
-                current_priority += 1
-                if tasks.filter(priority=current_priority).exists():
-                    temp = tasks.get(priority=current_priority)
-                    task.priority = task.priority + 1
-                    task.save()
-                    task = temp
-                else:
-                    task.priority = task.priority + 1
-                    task.save()
+        # getting priority of the task to be created
+        current_priority = object.priority
+        # checking if a task with the priority exists in the db
+        if Task.objects.filter(
+            user=self.request.user,
+            deleted=False,
+            completed=False,
+            priority=current_priority,
+        ).exists():
+
+            # getting all the tasks from db that are not deleted,completed,user
+            tasks = (
+                Task.objects.select_for_update()
+                .filter(user=self.request.user, deleted=False, completed=False)
+                .order_by("priority")
+            )
+            # a dictinary to hold id and the new priority of the task
+            tasks_to_be_updated = {}
+
+            # adding the tasks whose values are to be modified to the dictionary with their new priority
+            for task in tasks:
+                if task.priority == current_priority:
+                    tasks_to_be_updated[task.id] = current_priority + 1
+                    current_priority = current_priority + 1
+
+            # updating the priority of the tasks in an atomic manner
+            with transaction.atomic():
+                for key in tasks_to_be_updated:
+                    Task.objects.filter(id=key).update(
+                        priority=tasks_to_be_updated[key]
+                    )
 
     def form_valid(self, form):
         """If the form is valid, save the associated model."""
