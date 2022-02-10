@@ -30,8 +30,9 @@
     <h1 class="text-xl font-bold pt-6">Pending Tasks</h1>
     {% for task in alltasks.pending %}    
         <div class = "flex  bg-slate-100 justify-between items-center rounded-md p-3 my-3">
-            <a href="/detail-task/{{task.id}}">
+            <a href="/detail-task/{{task.id}}" class="flex flex-col">
                 <span class="font-medium text-xl mr-3">{{task}}</span>
+                <span class="font-medium text-md text-gray-700 mr-3">{{ task.created_date|date:"D, d M" }}</span>
             </a>
             <div class="flex items-center justify ml-5">
                 <a href="/delete-task/{{task.id}}"><div class="bg-red-700 p-2 m-2 rounded-md"><img style="height: 12px;" src="{%static 'tasks/trash.png' %}" alt="Trash icon"></div></a>   

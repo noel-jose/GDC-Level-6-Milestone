@@ -34,35 +34,30 @@ class PrioirtyValidation(AuthorisedTaskManager):
             priority=current_priority,
         ).exists():
 
-            # getting all the tasks from db that are not deleted,not completed and of this user
-            tasks = (
-                Task.objects.select_for_update()
-                .filter(user=self.request.user, deleted=False, completed=False)
-                .order_by("priority")
-            )
-            # a dictinary to hold id and the new priority of the task
-            tasks_to_be_updated = {}
-
-            # adding the tasks whose values are to be modified to the dictionary with their new priority
-            for task in tasks:
-                if task.priority == current_priority:
-                    tasks_to_be_updated[task.id] = current_priority + 1
-                    current_priority = current_priority + 1
-
             # updating the priority of the tasks in an atomic manner
             with transaction.atomic():
-                for key in tasks_to_be_updated:
-                    Task.objects.filter(id=key).update(
-                        priority=tasks_to_be_updated[key]
+                # getting all the tasks from db that are not deleted,not completed and of this user
+                tasks = (
+                    Task.objects.select_for_update()
+                    .filter(
+                        user=self.request.user,
+                        deleted=False,
+                        completed=False,
+                        priority__gte=current_priority,
                     )
+                    .order_by("priority")
+                )
+                # a dictinary to hold id and the new priority of the task
+                tasks_to_be_updated = []
 
-    def form_valid(self, form):
-        """If the form is valid, save the associated model."""
-        self.object = form.save()
-        self.object.user = self.request.user
-        self.validate_priority(self.object)
-        self.object.save()
-        return HttpResponseRedirect(self.get_success_url())
+                # adding the tasks whose values are to be modified to the dictionary with their new priority
+                for task in tasks:
+                    if task.priority == current_priority:
+                        task.priority = current_priority + 1
+                        current_priority = current_priority + 1
+                        tasks_to_be_updated.append(task)
+
+                Task.objects.bulk_update(tasks_to_be_updated, ["priority"])
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -170,49 +165,81 @@ class GenericTaskUpdateView(PrioirtyValidation, UpdateView):
     template_name = "task_update.html"
     success_url = "/tasks"
 
+    def form_valid(self, form):
+        """If the form is valid, save the associated model."""
+        print("Entered the form valid section")
+        self.object = form.save()
+        self.object.user = self.request.user
+        if "priority" in form.changed_data:
+            self.validate_priority(self.object)
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
 
 class GenericTaskCreateView(PrioirtyValidation, CreateView):
     form_class = TaskCreateForm
     template_name = "task_create.html"
     success_url = "/tasks"
 
+    def form_valid(self, form):
+        """If the form is valid, save the associated model."""
+        self.object = form.save()
+        self.object.user = self.request.user
+        self.validate_priority(self.object)
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
 
 class GenericTaskView(LoginRequiredMixin, ListView):
 
     template_name = "task.html"
-    context_object_name = "tasks"
-    # extra_context = "context"
-
-    # def get_context_data(self):
-    #     user_name = self.request.user
-    #     completed = Task.objects.filter(deleted=False, completed=True)
-    #     total = Task.objects.filter(deleted=False, completed=False)
-    #     context = {
-    #         "user_name": user_name,
-    #         "completed": completed.count,
-    #         "total": total.count,
-    #     }
-    #     return context
+    context_object_name = "alltasks"
 
     def get_queryset(self):
-        search_term = self.request.GET.get("search")
-        tasks = Task.objects.filter(
-            completed=False, deleted=False, user=self.request.user
+        pending = Task.objects.filter(
+            user=self.request.user, completed=False, deleted=False
         ).order_by("priority")
+        completed = Task.objects.filter(
+            user=self.request.user, completed=True, deleted=False
+        )
+        name = self.request.user
+        completed_count = completed.count()
+        total_count = Task.objects.filter(user=self.request.user, deleted=False).count()
+        search_term = self.request.GET.get("search")
         if search_term:
-            tasks = tasks.filter(title__icontains=search_term)
-        return tasks
+            pending = pending.filter(title__icontains=search_term)
+        alltasks = {
+            "pending": pending,
+            "completed": completed,
+            "name": name,
+            "completed_count": completed_count,
+            "total_count": total_count,
+        }
+        return alltasks
 
 
 class GenericCompletedTaskView(LoginRequiredMixin, ListView):
     template_name = "completed.html"
-    context_object_name = "tasks"
+    context_object_name = "alltasks"
 
     def get_queryset(self):
-        tasks = Task.objects.filter(
-            completed=True, deleted=False, user=self.request.user
+        pending = Task.objects.filter(
+            user=self.request.user, completed=False, deleted=False
+        ).order_by("priority")
+        completed = Task.objects.filter(
+            user=self.request.user, completed=True, deleted=False
         )
-        return tasks
+        name = self.request.user
+        completed_count = completed.count()
+        total_count = Task.objects.filter(user=self.request.user, deleted=False).count()
+        alltasks = {
+            "pending": pending,
+            "completed": completed,
+            "name": name,
+            "completed_count": completed_count,
+            "total_count": total_count,
+        }
+        return alltasks
 
 
 class GenericAllTaskView(LoginRequiredMixin, ListView):
@@ -222,7 +249,7 @@ class GenericAllTaskView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         pending = Task.objects.filter(
             user=self.request.user, completed=False, deleted=False
-        )
+        ).order_by("priority")
         completed = Task.objects.filter(
             user=self.request.user, completed=True, deleted=False
         )
