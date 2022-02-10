@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Create Task {% endblock title %}
+{% block title %}Update Task {% endblock title %}
 
 {% block  content %}
 <h1 class="text-xl font-bold pt-6">Update Todo</h1>
-<form action="/create-task/" method="POST">
+<form  method="POST">
     {% csrf_token %}
     {% for field in form %}                   
         <div class="fieldWrapper  p-3">

@@ -6,30 +6,33 @@
 {% block content %}
 
 
-<h1 class="text-3xl font-semibold p-4">{{ context.user_name }}</h1>
+<div class="flex items-center justify-between">
+    <h1 class="text-3xl font-semibold py-4">Hi {{ alltasks.name }}</h1>
+    <a class = "text-l font-semibold py-4 text-red-600" href="/user/logout">Logout</a>
+</div>
+
+<p class="text-grey-500 text-l font-regular">{{ alltasks.completed_count }} of {{ alltasks.total_count }} tasks completed</p>
 
 
-<form action="">
-    <input class = "p-2 bg-white rounded-md m-2 bg-slate-100 " type="text" name="search">
-    <input class = "bg-red-600 p-2 text-white rounded-md " type="submit" value="Search">
-</form>
+<h2 class="text-2xl font-semibold py-3">All Tasks</h2>
 
-<div class="flex justify-between items-center my-8">
-    <a class = "text-red-400 bg-red-100 px-2 py-1 rounded-lg m-2 font-semibold"  href="/tasks/">Pending</a>
+<div class="flex justify-between items-center my-3">
+    <a class = "text-gray-700  px-2 py-1  font-semibold"  href="/all_tasks/">All</a>
     <div>
-        <a class = "text-gray-700  px-2 py-1  font-semibold" href="/all_tasks/">All</a>
+        <a class = "text-red-400 bg-red-100 px-2 py-1 rounded-lg m-2 font-semibold" href="/tasks/">Pending</a>
         <a class = "text-gray-700  px-2 py-1  font-semibold" href="/completed_tasks/">Completed</a> 
     </div>      
 </div>
 
 
-<h2 class="text-2xl font-semibold p-3">Tasks</h2>
 
 <div class="flex flex-col">
-    {% for task in tasks %}    
-        <div class = "flex  bg-teal-100 justify-between items-center rounded-md p-3 m-3">
-            <a href="/detail-task/{{task.id}}">
+    <h1 class="text-xl font-bold pt-6">Pending Tasks</h1>
+    {% for task in alltasks.pending %}    
+        <div class = "flex  bg-slate-100 justify-between items-center rounded-md p-3 my-3">
+            <a href="/detail-task/{{task.id}}" class="flex flex-col">
                 <span class="font-medium text-xl mr-3">{{task}}</span>
+                <span class="font-medium text-md text-gray-700 mr-3">{{ task.created_date|date:"D, d M" }}</span>
             </a>
             <div class="flex items-center justify ml-5">
                 <a href="/delete-task/{{task.id}}"><div class="bg-red-700 p-2 m-2 rounded-md"><img style="height: 12px;" src="{%static 'tasks/trash.png' %}" alt="Trash icon"></div></a>   
@@ -40,10 +43,12 @@
     {% empty %}
         <p class="text-l ">No pending tasks</p>
     {% endfor %}
+
 </div>
 
 <div class="text-center my-5">
     <a class="bg-red-600  text-white p-2 px-5 rounded-md my-4" href="/create-task">Add Task</a>
 </div>
+
 
 {% endblock content %}
